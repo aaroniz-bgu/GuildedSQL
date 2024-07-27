@@ -3,6 +3,7 @@ package github.aaroniz.guilded.models;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public record ServerChannel(
+        //https://www.guilded.gg/docs/api/channels/ServerChannel
         @JsonProperty("id") String id,
         @JsonProperty("type") String type,
         @JsonProperty("name") String name,
