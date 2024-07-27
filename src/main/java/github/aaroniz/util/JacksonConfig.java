@@ -1,4 +1,4 @@
-package github.aaroniz;
+package github.aaroniz.util;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
