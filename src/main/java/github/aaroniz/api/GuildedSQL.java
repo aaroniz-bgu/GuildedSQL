@@ -2,7 +2,9 @@ package github.aaroniz.api;
 
 import github.aaroniz.data.GuildedTable;
 
+import javax.management.openmbean.KeyAlreadyExistsException;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 public interface GuildedSQL {
 
@@ -11,7 +13,7 @@ public interface GuildedSQL {
      *
      * @param name the table's name. {@code GuildedTable.MIN_STR <= name <= GuildedTable.MAX_NAME}
      * @return {@link GuildedTable} instance of the newly created.
-     * @throws {@link javax.naming.NameAlreadyBoundException} if a table with the given name already exists.
+     * @throws {@link KeyAlreadyExistsException} if a table with the given name already exists.
      */
     GuildedTable createTable(String name);
 
@@ -21,7 +23,7 @@ public interface GuildedSQL {
      * @param name the table's name. {@code GuildedTable.MIN_STR <= name <= GuildedTable.MAX_NAME}
      * @param description the table's description. {@code GuildedTable.MIN_STR <= name <= GuildedTable.MAX_DESC}
      * @return {@link GuildedTable} instance of the newly created.
-     * @throws {@link javax.naming.NameAlreadyBoundException} if a table with the given name already exists.
+     * @throws {@link KeyAlreadyExistsException} if a table with the given name already exists.
      */
     GuildedTable createTable(String name, String description);
 
@@ -32,8 +34,8 @@ public interface GuildedSQL {
      *
      * @param oldName the current name of the table which needs to be updated.
      * @param updated the updated instance containing the data of the table to update.
-     * @return The given instance with updated fields.
-     * @throws {@link java.rmi.NoSuchObjectException} if a table with the given {@oldName} doesn't exist.
+     * @return The updated instance with updated fields.
+     * @throws {@link NoSuchElementException} if a table with the given {@oldName} doesn't exist.
      */
     GuildedTable updateTable(String oldName, GuildedTable updated);
 
@@ -46,7 +48,7 @@ public interface GuildedSQL {
      * @param newName the new name, if null name will remain unchanged.
      * @param newDescription the new description, if null will remain unchanged.
      * @return {@link GuildedTable} instance with updated fields.
-     * @throws {@link java.rmi.NoSuchObjectException} if a table with the given {@oldName} doesn't exist.
+     * @throws {@link NoSuchElementException} if a table with the given {@oldName} doesn't exist.
      */
     GuildedTable updateTable(String oldName, String newName, String newDescription);
 
@@ -72,7 +74,7 @@ public interface GuildedSQL {
      * @param table the table.
      * @param key the key to check.
      * @return true if exists, false otherwise.
-     * @throws {@link java.rmi.NoSuchObjectException} If the table doesn't exist.
+     * @throws {@link NoSuchElementException} If the table doesn't exist.
      */
     boolean contains(String table, String key);
 
@@ -82,7 +84,7 @@ public interface GuildedSQL {
      * @param table The table from which to query entries.
      * @param limit must be {@code limit <= Constants.MAX_LIMIT}
      * @return list of the last {@code limit} entries from {@code table}.
-     * @throws {@link java.rmi.NoSuchObjectException} If the table doesn't exist.
+     * @throws {@link NoSuchElementException} If the table doesn't exist.
      */
     String get(String table, int limit);
 
@@ -91,7 +93,7 @@ public interface GuildedSQL {
      *
      * @param table the table from which to query entries.
      * @return list of the last {@code limit} entries from {@code table}.
-     * @throws {@link java.rmi.NoSuchObjectException} If the table doesn't exist.
+     * @throws {@link NoSuchElementException} If the table doesn't exist.
      */
     String get(String table);
 
@@ -101,7 +103,7 @@ public interface GuildedSQL {
      * @param table the table from which to query.
      * @param key the key of the entry.
      * @return the entry if exists, null otherwise.
-     * @throws {@link java.rmi.NoSuchObjectException} If the table of the key don't exist.
+     * @throws {@link NoSuchElementException} If the table of the key don't exist.
      */
     String get(String table, String key);
 
@@ -111,7 +113,7 @@ public interface GuildedSQL {
      * @param table the table from which to query entries.
      * @param limit must be {@code limit <= Constants.MAX_LIMIT}
      * @param filter user defined filter.
-     * @return @throws {@link java.rmi.NoSuchObjectException} If the table doesn't exist.
+     * @return @throws {@link NoSuchElementException} If the table doesn't exist.
      */
     List<String> filter(String table, int limit, GuildedFilter filter);
 
@@ -121,8 +123,8 @@ public interface GuildedSQL {
      * @param table the table.
      * @param key the key, must be unique.
      * @param data the data.
-     * @throws {@link java.rmi.NoSuchObjectException} If the table doesn't exist.
-     * @throws {@link javax.management.openmbean.KeyAlreadyExistsException} if the key already exists in the table.
+     * @throws {@link NoSuchElementException} If the table doesn't exist.
+     * @throws {@link KeyAlreadyExistsException} if the key already exists in the table.
      */
     void insert(String table, String key, String data);
 
@@ -132,7 +134,7 @@ public interface GuildedSQL {
      * @param table the table.
      * @param key the key, must exist in the table.
      * @param data the data.
-     * @throws {@link java.rmi.NoSuchObjectException} If the table of the key don't exist.
+     * @throws {@link NoSuchElementException} If the table of the key don't exist.
      */
     void update(String table, String key, String data);
 
@@ -142,8 +144,8 @@ public interface GuildedSQL {
      * @param table the table.
      * @param oldKey must exist in the table.
      * @param newKey must not exist in the table.
-     * @throws {@link java.rmi.NoSuchObjectException} If the table of the key don't exist.
-     * @throws {@link javax.management.openmbean.KeyAlreadyExistsException} if the key already exists in the table.
+     * @throws {@link NoSuchElementException} If the table of the key don't exist.
+     * @throws {@link KeyAlreadyExistsException} if the key already exists in the table.
      */
     void updateKey(String table, String oldKey, String newKey);
 
