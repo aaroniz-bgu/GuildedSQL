@@ -4,7 +4,6 @@ import github.aaroniz.util.StringHelper;
 
 public class GuildedDataEntry {
 
-    public static final int MAX_CHUNK = 4_000;
 
     /**
      * The message uuid in the Guilded API.
