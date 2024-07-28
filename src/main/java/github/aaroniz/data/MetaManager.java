@@ -29,7 +29,7 @@ public class MetaManager {
     }
 
     public void loadCacheFromMeta() {
-        GuildedBuffer buf = new GuildedBuffer(MAX_LIMIT, client, meta.getUUID(), null);
+        GuildedBuffer buf = new GuildedBuffer(MAX_LIMIT, client, meta.getUUID(), null, true);
         while(buf.notNullOrEmpty()) {
             for(GuildedDataEntry entry : buf.getEntries()) {
                 String[] tables = entry.getData().split(",");
@@ -39,7 +39,7 @@ public class MetaManager {
                     cacheTable(new GuildedTable(uuid, res.channel().name(), res.channel().topic()));
                 }
             }
-            buf = new GuildedBuffer(MAX_LIMIT, client, meta.getUUID(), buf.getLastsDate());
+            buf = new GuildedBuffer(MAX_LIMIT, client, meta.getUUID(), buf.getLastsDate(), true);
         }
     }
 
