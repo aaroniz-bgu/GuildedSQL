@@ -114,7 +114,7 @@ public class MetaManager {
     private ChatMessage getLastMessageAtMeta() {
         String uri = UriComponentsBuilder
                 .fromUriString(CHANNEL + "/{channelId}/" + MESSAGE)
-                .queryParam("limit", 1)
+                .queryParam("limit", MAX_LIMIT)
                 .build()
                 .expand(meta.getUUID())
                 .toUriString();
@@ -127,7 +127,9 @@ public class MetaManager {
         if(response == null) {
             return null;
         } else if (response.messages() != null && response.messages().length > 0) {
-            return response.messages()[0];
+            return response.messages()[0].type().equals("default") ?
+                    response.messages()[0]:
+                    null;
         }
         return null;
     }
