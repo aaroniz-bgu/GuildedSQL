@@ -24,9 +24,33 @@ public class MetaManager {
         this.meta = meta;
     }
 
+    public void loadCacheFromMeta() {
+        GuildedBuffer buf = new GuildedBuffer(100, client, meta.getUUID(), true);
+        while(buf.getEntries().length > 0) {
+            for(GuildedDataEntry entry : buf.getEntries()) {
+                String[] tables = entry.getData().split(",");
+                for(String uuid : tables) {
+                    ChannelResponse res = client.get().uri(CHANNEL + "/" + uuid)
+                            .retrieve()
+                            .bodyToMono(ChannelResponse.class)
+                            .block();
+                    if(res == null) continue;
+                    cacheTable(new GuildedTable(uuid, res.channel().name(), res.channel().topic()));
+                }
+            }
+            buf = new GuildedBuffer(100, client, meta.getUUID(), true, buf.getLastsDate());
+        }
+    }
+
     public GuildedTable cacheAndMetaSave(GuildedTable table) {
         addTableToMeta(table.getUUID());
         return cacheTable(table);
+    }
+
+    public void deleteAndMetaRemove(String name) {
+        if(!cacheContainsTable(name)) return;
+        deleteTableFromMeta(getCachedTable(name).getUUID());
+        deleteCachedTable(name);
     }
 
     public GuildedTable cacheTable(GuildedTable table) {
@@ -57,7 +81,7 @@ public class MetaManager {
 
     private void addTableToMeta(String uuid) {
         MessageResponse response = client.get()
-                .uri(CHANNEL + "{channelId}" + MESSAGE, meta.getUUID())
+                .uri(CHANNEL + "/{channelId}/" + MESSAGE, meta.getUUID())
                 .retrieve()
                 .bodyToMono(MessageResponse.class)
                 .block();
@@ -67,7 +91,7 @@ public class MetaManager {
         if(response.message().content().length() + uuid.length() <= MAX_CHUNK) {
             String newContent = response.message().content().concat(",").concat(uuid);
             client.patch()
-                    .uri(CHANNEL + "{channelId}" + MESSAGE, meta.getUUID())
+                    .uri(CHANNEL + "/{channelId}/" + MESSAGE, meta.getUUID())
                     .bodyValue(Mono.just(new UpdateChatMessage(newContent)))
                     .retrieve()
                     .bodyToMono(ChannelResponse.class)
@@ -75,7 +99,7 @@ public class MetaManager {
         } else {
             CreateChatMessage request = new CreateChatMessage(true, false, null, uuid);
             client.post()
-                    .uri(CHANNEL + "{channelId}" + MESSAGE, meta.getUUID())
+                    .uri(CHANNEL + "/{channelId}/" + MESSAGE, meta.getUUID())
                     .bodyValue(Mono.just(request))
                     .retrieve()
                     .bodyToMono(MessageResponse.class)
@@ -83,4 +107,46 @@ public class MetaManager {
         }
     }
 
+    public void deleteTableFromMeta(String uuid) {
+        try {
+            GuildedBuffer buf = new GuildedBuffer(100, client, meta.getUUID(), true);
+
+            while (buf.getEntries().length > 0) {
+                for (GuildedDataEntry entry : buf.getEntries()) {
+                    if (entry.getData().contains(uuid))
+                        deleteTableFromMetaHelper(uuid, entry);
+                }
+                buf = new GuildedBuffer(100, client, meta.getUUID(), true, buf.getLastsDate());
+            }
+        } catch(Exception ignored) {}
+    }
+
+    private void deleteTableFromMetaHelper(String uuid, GuildedDataEntry msg) {
+        final String[] content = msg.getData().split(",");
+        final StringBuilder builder = new StringBuilder();
+        for(String s : content) {
+            if(!s.equals(uuid)) builder.append(s).append(",");
+        }
+
+        String newContent = builder.toString();
+        int sub = builder.lastIndexOf(",");
+        sub = sub == -1 ? newContent.length() : sub;
+        newContent = newContent.substring(0, sub);
+
+        if(!newContent.isBlank()) {
+            Mono<UpdateChatMessage> requestMono = Mono.just(new UpdateChatMessage(newContent));
+            client.patch()
+                    .uri(CHANNEL + "/{channelId}/" + MESSAGE + "/{msgId}", meta.getUUID(), msg.getUUID())
+                    .body(requestMono, UpdateChatMessage.class)
+                    .retrieve()
+                    .bodyToMono(MessageResponse.class)
+                    .block();
+        } else {
+            client.delete()
+                    .uri(CHANNEL + "/{channelId}/" + MESSAGE + "/{msgId}", meta.getUUID(), msg.getUUID())
+                    .retrieve()
+                    .bodyToMono(Void.class)
+                    .block();
+        }
+    }
 }
