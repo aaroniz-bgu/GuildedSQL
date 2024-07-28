@@ -10,8 +10,7 @@ import reactor.core.publisher.Mono;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import static github.aaroniz.api.Constants.CHANNEL;
-import static github.aaroniz.api.Constants.MESSAGE;
+import static github.aaroniz.api.Constants.*;
 
 /**
  * Not a real buffer.
@@ -20,6 +19,10 @@ public class GuildedBuffer {
     private GuildedDataEntry[] entries;
 
     public GuildedBuffer(int size, WebClient client, String uuid, String before) {
+        this(size, client, uuid, before, false);
+    }
+
+    public GuildedBuffer(int size, WebClient client, String uuid, String before, boolean meta) {
         entries = new GuildedDataEntry[0];
 
         String uri = getUri(size, uuid, before);
@@ -36,7 +39,7 @@ public class GuildedBuffer {
         final ArrayList<GuildedDataEntry> entryList = new ArrayList<>();
 
         for(ChatMessage msg : msgs) {
-            if(!msg.type().equals("chat")) continue;
+            if(!msg.type().equals("default")) continue;
 
             final String prev = msg.replyMessageIds() != null && msg.replyMessageIds().length > 0 ?
                     msg.replyMessageIds()[0]:
@@ -44,11 +47,11 @@ public class GuildedBuffer {
             int firstTilda = msg.content().indexOf("~");
             firstTilda = firstTilda == -1 ? 0 : firstTilda;
 
+            final String key = meta ? META : msg.content().substring(0, firstTilda);
+            final String ctx = meta ? msg.content() : msg.content().substring(firstTilda + 1);
+
             entryList.add(new GuildedDataEntry(
-                    msg.id(),
-                    msg.content().substring(0, firstTilda),
-                    msg.content().substring(firstTilda),
-                    prev, !msg.isSilent(), msg.createdAt()));
+                    msg.id(), key, ctx, prev, !msg.isSilent(), msg.createdAt()));
         }
 
         entries = entryList.toArray(entries);
