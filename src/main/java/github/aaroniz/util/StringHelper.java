@@ -29,4 +29,15 @@ public class StringHelper {
         if(s != null && !s.isBlank()) return s;
         throw new IllegalArgumentException("Given a null/blank string: " + s);
     }
+
+    /**
+     * Returns the first tilda in a string.
+     *
+     * @param content the string
+     * @return the index
+     */
+    public static int getFirstTilda(String content) {
+        int f = content.indexOf("~");
+        return f = f == -1 ? 0 :  f;
+    }
 }
