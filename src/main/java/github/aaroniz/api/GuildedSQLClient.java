@@ -1,5 +1,7 @@
 package github.aaroniz.api;
 
+import github.aaroniz.data.GuildedBuffer;
+import github.aaroniz.data.GuildedDataEntry;
 import github.aaroniz.data.GuildedTable;
 import github.aaroniz.data.MetaManager;
 import github.aaroniz.guilded.models.ChatMessage;
@@ -15,6 +17,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import reactor.core.publisher.Mono;
 
 import javax.management.openmbean.KeyAlreadyExistsException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -143,22 +146,55 @@ public class GuildedSQLClient implements GuildedSQL {
 
     @Override
     public boolean contains(String table, String key) {
-        return false;
+        return get(table, key) != null;
     }
 
     @Override
-    public String get(String table, int limit) {
-        return null;
+    public List<String> get(String table, int limit) {
+        if(!meta.cacheContainsTable(table)) throw new NoSuchElementException("Table " + table + " does not exist");
+        GuildedTable tableObj = meta.getCachedTable(table);
+
+        ArrayList<String> found = new ArrayList<>();
+        ArrayList<String> results = new ArrayList<>();
+        GuildedBuffer buf = new GuildedBuffer(limit, client, tableObj.getUUID(), false);
+        while(found.size() < limit && buf.getEntries().length > 0) {
+            for(GuildedDataEntry entry : buf.getEntries()) {
+                if(found.contains(entry.getKey())) continue;
+                results.add(getContinuation(tableObj.getUUID(), entry));
+                found.add(entry.getKey());
+            }
+            buf = new GuildedBuffer(100, client, tableObj.getUUID(), false, buf.getLastsDate());
+        }
+
+        return results;
     }
 
     @Override
-    public String get(String table) {
-        return null;
+    public List<String> get(String table) {
+        return get(table, 50);
     }
 
     @Override
     public String get(String table, String key) {
-        return null;
+        if(!meta.cacheContainsTable(table)) throw new NoSuchElementException("Table " + table + " does not exist");
+        GuildedTable tableObj = meta.getCachedTable(table);
+
+        GuildedDataEntry resultEntry = null;
+
+        boolean found = false;
+        GuildedBuffer buf = new GuildedBuffer(100, client, tableObj.getUUID(), false);
+        while(!found && buf.getEntries().length > 0) {
+            for(GuildedDataEntry entry : buf.getEntries()) {
+                if(entry.getKey().equals(key)) {
+                    found = true;
+                    resultEntry = entry;
+                    break;
+                }
+            }
+            buf = new GuildedBuffer(100, client, tableObj.getUUID(), false, buf.getLastsDate());
+        }
+
+        return getContinuation(tableObj.getUUID(), resultEntry);
     }
 
     @Override
