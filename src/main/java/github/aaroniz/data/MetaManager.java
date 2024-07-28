@@ -134,14 +134,14 @@ public class MetaManager {
 
     public void deleteTableFromMeta(String uuid) {
         try {
-            GuildedBuffer buf = new GuildedBuffer(MAX_LIMIT, client, meta.getUUID(), null);
+            GuildedBuffer buf = new GuildedBuffer(MAX_LIMIT, client, meta.getUUID(), null, true);
 
             while (buf.notNullOrEmpty()) {
                 for (GuildedDataEntry entry : buf.getEntries()) {
                     if (entry.getData().contains(uuid))
                         deleteTableFromMetaHelper(uuid, entry);
                 }
-                buf = new GuildedBuffer(MAX_LIMIT, client, meta.getUUID(), buf.getLastsDate());
+                buf = new GuildedBuffer(MAX_LIMIT, client, meta.getUUID(), buf.getLastsDate(), true);
             }
         } catch(Exception ignored) {}
     }
