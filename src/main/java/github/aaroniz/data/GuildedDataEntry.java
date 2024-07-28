@@ -27,7 +27,7 @@ public class GuildedDataEntry {
      */
     private String previous;
     /**
-     * Messages with {@code isPrivate = true} else, it was made by this system.
+     * Messages with {@code isSilent = true} else, it was made by this system.
      */
     private boolean isUser;
     /**
