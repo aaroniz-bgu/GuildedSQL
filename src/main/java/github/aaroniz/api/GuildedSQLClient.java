@@ -203,29 +203,116 @@ public class GuildedSQLClient implements GuildedSQL {
 
     @Override
     public List<String> filter(String table, int limit, GuildedFilter filter) {
-        return null;
+        if(!meta.cacheContainsTable(table)) throw new NoSuchElementException("Table " + table + " does not exist");
+        GuildedTable tableObj = meta.getCachedTable(table);
+
+        ArrayList<String> found = new ArrayList<>();
+        ArrayList<String> results = new ArrayList<>();
+        GuildedBuffer buf = new GuildedBuffer(limit, client, tableObj.getUUID(), false);
+        // Note that the difference here is that we track results size, since we do not want to parse
+        // previous blocks of already found blocks since they're adjacent.
+        // Additionally, sending partially parsed from previous node strings to filter may produce errors,
+        // depends on the client's implementation.
+        while(results.size() < limit && buf.getEntries().length > 0) {
+            for(GuildedDataEntry entry : buf.getEntries()) {
+                if(found.contains(entry.getKey())) continue;
+                found.add(entry.getKey());
+                String current = getContinuation(tableObj.getUUID(), entry);
+                if(filter.filter(current)) // The biggest change
+                    results.add(current);
+            }
+            buf = new GuildedBuffer(100, client, tableObj.getUUID(), false, buf.getLastsDate());
+        }
+
+        return results;
     }
 
     @Override
     public void insert(String table, String key, String data) {
+        if(contains(table, key)) throw new KeyAlreadyExistsException();
+        if(data == null) throw new NullPointerException();
 
+        GuildedTable tableObj = meta.getCachedTable(table);
+
+        ArrayList<GuildedDataEntry> entries = new ArrayList<>();
+        while(!data.isBlank()) {
+            String content;
+            if(data.length() + key.length() < MAX_CHUNK) {
+                content = key + "~" + data;
+                data = "";
+            } else {
+                content = key + "~" + data.substring(0, MAX_CHUNK - key.length() - 1);
+            }
+            entries.add(new GuildedDataEntry(key, content, true, null));
+        }
+
+        String last = null;
+        for(GuildedDataEntry entry : entries) {
+            last = saveDataEntry(tableObj.getUUID(), entry, last);
+        }
+    }
+
+    private String saveDataEntry(String tableUUID, GuildedDataEntry entry, String prev) {
+        Mono<CreateChatMessage> requestMono = Mono.just(
+                new CreateChatMessage(!entry.isUser(), false, new String[]{prev}, entry.getData()));
+        Mono<MessageResponse> responseMono = client.post()
+                .uri(CHANNEL + "/{channelId}/" + MESSAGE, tableUUID)
+                .bodyValue(CreateChatMessage.class)
+                .retrieve()
+                .bodyToMono(MessageResponse.class);
+        MessageResponse response = responseMono.block();
+        return response != null ? response.message().id() : null;
     }
 
     @Override
     public void update(String table, String key, String data) {
-
+        delete(table, key);
+        insert(table, key, data);
     }
 
     @Override
     public void updateKey(String table, String oldKey, String newKey) {
-
+        if(contains(table, newKey)) throw new KeyAlreadyExistsException("New key already exists in the table for another record.");
+        String content = get(table, oldKey);
+        delete(table, oldKey);
+        insert(table, newKey, content);
     }
 
     @Override
     public boolean delete(String table, String key) {
+        try {
+            if (!meta.cacheContainsTable(table)) return false;
+
+            GuildedTable tableObj = meta.getCachedTable(table);
+
+            GuildedBuffer buf = new GuildedBuffer(100, client, tableObj.getUUID(), false);
+            while (buf.getEntries().length > 0) {
+                for(GuildedDataEntry entry : buf.getEntries()) {
+                    if(entry.getUUID().equals(key)) return deleteContinuation(tableObj.getUUID(), entry);
+                }
+                buf = new GuildedBuffer(100, client, tableObj.getUUID(), false, buf.getLastsDate());
+            }
+        } catch (Exception ignored) {}
         return false;
     }
 
+    /**
+     * Retrieves the item in the database in its entirety. Since we might've
+     * broken it down to chunks we need to append them all together.
+     *
+     * @implNote This code needs some optimization, but other than optimizing string concatenation there is not
+     * much we can optimize without greatly impacting other functions. And what I mean by that, is that we've
+     * probably already loaded those entries, where? well, in the "buffer", but there are cases where the buffer
+     * contains only some of the chunks due to paging constraints. In that case we're really doomed, since we need to
+     * load the next batch and in that case it's no better than this.
+     * The idea to optimize it will probably be to separate entries to buckets by keys, then if the last one in the
+     * bucket we're reading contains previous field which isn't null, then we call this, and append its result to
+     * the so far built result.
+     *
+     * @param tableUUID table
+     * @param entry entry
+     * @return data of item.
+     */
     private String getContinuation(String tableUUID, GuildedDataEntry entry) {
         String result = entry == null ? null :
                 entry.getData().substring(entry.getData().indexOf("~"));
@@ -238,6 +325,13 @@ public class GuildedSQLClient implements GuildedSQL {
         return result;
     }
 
+    /**
+     * Retrieves a single message given table and msg.
+     *
+     * @param tableUUID table
+     * @param msgUUID msg
+     * @return data entry.
+     */
     private GuildedDataEntry getItem(String tableUUID, String msgUUID) {
         MessageResponse response = client.get()
                 .uri(CHANNEL + "/{channelId}/" + MESSAGE + "/{msgId}", tableUUID, msgUUID)
@@ -255,5 +349,22 @@ public class GuildedSQLClient implements GuildedSQL {
                 prev,
                 response.message().isPrivate(),
                 response.message().createdAt());
+    }
+
+    private boolean deleteContinuation(String tableUUID, GuildedDataEntry entry) {
+        while(entry != null) {
+            String myUUID = entry.getUUID();
+            entry = entry.getPrevious() != null ? getItem(tableUUID, entry.getPrevious()) : null;
+            deleteContinuationHelper(tableUUID, myUUID);
+        }
+        return true;
+    }
+
+    private void deleteContinuationHelper(String tableUUID, String msgUUID) {
+        client.delete()
+                .uri(CHANNEL + "/{channelId}/" + MESSAGE + "/{msgId}", tableUUID, msgUUID)
+                .retrieve()
+                .bodyToMono(Void.class)
+                .block();
     }
 }
