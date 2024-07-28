@@ -92,7 +92,7 @@ public class MetaManager {
             String newContent = response.message().content().concat(",").concat(uuid);
             client.patch()
                     .uri(CHANNEL + "/{channelId}/" + MESSAGE, meta.getUUID())
-                    .bodyValue(Mono.just(new UpdateChatMessage(newContent)))
+                    .body(Mono.just(new UpdateChatMessage(newContent)), UpdateChatMessage.class)
                     .retrieve()
                     .bodyToMono(ChannelResponse.class)
                     .block();
@@ -100,7 +100,7 @@ public class MetaManager {
             CreateChatMessage request = new CreateChatMessage(true, false, null, uuid);
             client.post()
                     .uri(CHANNEL + "/{channelId}/" + MESSAGE, meta.getUUID())
-                    .body(request, CreateChatMessage.class)
+                    .body(Mono.just(request), CreateChatMessage.class)
                     .retrieve()
                     .bodyToMono(MessageResponse.class)
                     .block();
