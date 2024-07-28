@@ -1,10 +1,14 @@
 package github.aaroniz.data;
 
+import github.aaroniz.guilded.models.ChatMessage;
 import github.aaroniz.guilded.requests.CreateChatMessage;
 import github.aaroniz.guilded.requests.UpdateChatMessage;
 import github.aaroniz.guilded.responses.ChannelResponse;
 import github.aaroniz.guilded.responses.MessageResponse;
+import github.aaroniz.guilded.responses.MessagesResponse;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.util.UriBuilder;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 import javax.management.openmbean.KeyAlreadyExistsException;
@@ -25,21 +29,25 @@ public class MetaManager {
     }
 
     public void loadCacheFromMeta() {
-        GuildedBuffer buf = new GuildedBuffer(100, client, meta.getUUID());
-        while(buf.getEntries() != null && buf.getEntries().length > 0) {
+        GuildedBuffer buf = new GuildedBuffer(MAX_LIMIT, client, meta.getUUID(), null);
+        while(buf.notNullOrEmpty()) {
             for(GuildedDataEntry entry : buf.getEntries()) {
                 String[] tables = entry.getData().split(",");
                 for(String uuid : tables) {
-                    ChannelResponse res = client.get().uri(CHANNEL + "/" + uuid)
-                            .retrieve()
-                            .bodyToMono(ChannelResponse.class)
-                            .block();
+                    ChannelResponse res = getChannelFromMeta(uuid);
                     if(res == null) continue;
                     cacheTable(new GuildedTable(uuid, res.channel().name(), res.channel().topic()));
                 }
             }
-            buf = new GuildedBuffer(100, client, meta.getUUID(), true, buf.getLastsDate());
+            buf = new GuildedBuffer(MAX_LIMIT, client, meta.getUUID(), buf.getLastsDate());
         }
+    }
+
+    private ChannelResponse getChannelFromMeta(String uuid) {
+        return client.get().uri(CHANNEL.concat("/{channelId}"), uuid)
+                .retrieve()
+                .bodyToMono(ChannelResponse.class)
+                .block();
     }
 
     public GuildedTable cacheAndMetaSave(GuildedTable table) {
@@ -56,7 +64,7 @@ public class MetaManager {
     public GuildedTable cacheTable(GuildedTable table) {
         if(table.getUUID() == null || table.getUUID().isBlank()) {
             throw new RuntimeException("Ran into a problem while caching a table");
-        } else if (cacheContainsTable(table.getName())) {
+        } else if (cacheContainsTable(table.getName().toLowerCase())) {
             throw new KeyAlreadyExistsException("Table with name " + table.getName() + " already cached.");
         }
         return cachedTables.put(table.getName().toLowerCase(), table);
@@ -67,6 +75,7 @@ public class MetaManager {
         if(cachedTables.containsKey(name)) {
             return cachedTables.get(name);
         }
+        // FIXME Should change this, should've returned null. Well see where the dependent calls are.
         throw new NoSuchElementException("Table with name " + name + " was not found.");
     }
 
@@ -80,18 +89,12 @@ public class MetaManager {
     }
 
     private void addTableToMeta(String uuid) {
-        MessageResponse response = client.get()
-                .uri(CHANNEL + "/{channelId}/" + MESSAGE, meta.getUUID())
-                .retrieve()
-                .bodyToMono(MessageResponse.class)
-                .block();
+        final ChatMessage last = getLastMessageAtMeta();
 
-        if(response == null) throw new RuntimeException("Could not save table identifier to meta-table");
-
-        if(response.message() != null && response.message().content().length() + uuid.length() <= MAX_CHUNK) {
-            String newContent = response.message().content().concat(",").concat(uuid);
+        if(last != null && last.content().length() + uuid.length() <= MAX_CHUNK) {
+            String newContent = last.content().concat(",").concat(uuid);
             client.patch()
-                    .uri(CHANNEL + "/{channelId}/" + MESSAGE, meta.getUUID())
+                    .uri(CHANNEL + "/{channelId}/" + MESSAGE + "/{msgId}", meta.getUUID(), last.id())
                     .body(Mono.just(new UpdateChatMessage(newContent)), UpdateChatMessage.class)
                     .retrieve()
                     .bodyToMono(ChannelResponse.class)
@@ -107,16 +110,37 @@ public class MetaManager {
         }
     }
 
+    private ChatMessage getLastMessageAtMeta() {
+        String uri = UriComponentsBuilder
+                .fromUriString(CHANNEL + "/{channelId}/" + MESSAGE)
+                .queryParam("limit", 1)
+                .build()
+                .expand(meta.getUUID())
+                .toUriString();
+        MessagesResponse response = client.get()
+                .uri(uri)
+                .retrieve()
+                .bodyToMono(MessagesResponse.class)
+                .block();
+
+        if(response == null) {
+            return null;
+        } else if (response.messages() != null && response.messages().length > 0) {
+            return response.messages()[0];
+        }
+        return null;
+    }
+
     public void deleteTableFromMeta(String uuid) {
         try {
-            GuildedBuffer buf = new GuildedBuffer(100, client, meta.getUUID());
+            GuildedBuffer buf = new GuildedBuffer(MAX_LIMIT, client, meta.getUUID(), null);
 
-            while (buf.getEntries().length > 0) {
+            while (buf.notNullOrEmpty()) {
                 for (GuildedDataEntry entry : buf.getEntries()) {
                     if (entry.getData().contains(uuid))
                         deleteTableFromMetaHelper(uuid, entry);
                 }
-                buf = new GuildedBuffer(100, client, meta.getUUID(), true, buf.getLastsDate());
+                buf = new GuildedBuffer(MAX_LIMIT, client, meta.getUUID(), buf.getLastsDate());
             }
         } catch(Exception ignored) {}
     }
@@ -124,6 +148,7 @@ public class MetaManager {
     private void deleteTableFromMetaHelper(String uuid, GuildedDataEntry msg) {
         final String[] content = msg.getData().split(",");
         final StringBuilder builder = new StringBuilder();
+
         for(String s : content) {
             if(!s.equals(uuid)) builder.append(s).append(",");
         }
