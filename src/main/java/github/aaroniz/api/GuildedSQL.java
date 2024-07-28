@@ -125,6 +125,7 @@ public interface GuildedSQL {
      * @param data the data.
      * @throws {@link NoSuchElementException} If the table doesn't exist.
      * @throws {@link KeyAlreadyExistsException} if the key already exists in the table.
+     * @throws {@link NullPointerException} if data is null.
      */
     void insert(String table, String key, String data);
 
