@@ -336,7 +336,7 @@ public class GuildedSQLClient implements GuildedSQL {
      */
     private String getContinuation(String tableUUID, GuildedDataEntry entry) {
         String result = entry == null ? null :
-                entry.getData().substring(entry.getData().indexOf("~"));
+                entry.getData().substring(getFirstTilda(entry.getData()));
 
         while(entry != null && entry.getPrevious() != null) {
             entry = getItem(tableUUID, entry.getPrevious());
