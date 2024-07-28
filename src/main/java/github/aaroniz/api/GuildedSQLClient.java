@@ -23,6 +23,9 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 
 import static github.aaroniz.api.Constants.*;
+import static github.aaroniz.data.Mapper.map;
+import static github.aaroniz.util.StringHelper.getFirstTilda;
+
 /* If you're trying to understand this code, its possible,
  * but you should know that I really didn't plan on it.
  * So its on you! XD
@@ -56,6 +59,7 @@ public class GuildedSQLClient implements GuildedSQL {
         if(meta.cacheContainsTable(name)) {
             throw new KeyAlreadyExistsException("Table with name " + name + " already exists.");
         }
+
         checkMetaData(name);
         GuildedTable table = new GuildedTable(name, description);
 
@@ -66,15 +70,12 @@ public class GuildedSQLClient implements GuildedSQL {
                 .body(requestMono, CreateServerChannel.class)
                 .retrieve()
                 .bodyToMono(ChannelResponse.class);
+        ChannelResponse result = resultMono.block();
 
-        try {
-            ChannelResponse result = resultMono.block();
-            if(result != null) {
-                table.setUUID(result.channel().id());
-            } else throw new NullPointerException("Something went wrong while creating the table");
-        } catch (WebClientResponseException e) {
-            throw e;
-        }
+        if(result != null) {
+            table.setUUID(result.channel().id());
+        } else throw new NullPointerException("Something went wrong while creating the table");
+
         return meta.cacheAndMetaSave(table);
     }
 
@@ -105,20 +106,19 @@ public class GuildedSQLClient implements GuildedSQL {
                 .body(requestMono, UpdateServerChannel.class)
                 .retrieve()
                 .bodyToMono(ChannelResponse.class);
+        ChannelResponse response = responseMono.block();
 
-        try {
-            ChannelResponse response = responseMono.block();
-            if(response == null) {
-                throw new RuntimeException("Something went wrong while creating the table");
-            }
-        } catch (WebClientResponseException e) {
-            throw e;
+        if(response == null) {
+            throw new RuntimeException("Something went wrong while creating the table");
         }
+
+        meta.deleteCachedTable(oldName);
+        meta.cacheTable(map(response.channel()));
 
         return new GuildedTable(newName, newDescription);
     }
 
-    public UpdateServerChannel updateServerChannel(String name, String desc) {
+    private UpdateServerChannel updateServerChannel(String name, String desc) {
         return new UpdateServerChannel(name, desc, visibility);
     }
 
@@ -135,11 +135,11 @@ public class GuildedSQLClient implements GuildedSQL {
         if(!meta.cacheContainsTable(tableName)) return false;
 
         GuildedTable table = meta.getCachedTable(tableName);
-
         Mono<Void> responseMono =  client.delete()
                 .uri(CHANNEL + "/{id}", table.getUUID())
                 .retrieve()
                 .bodyToMono(Void.class);
+
         try {
             responseMono.block();
             meta.deleteAndMetaRemove(tableName);
@@ -156,20 +156,21 @@ public class GuildedSQLClient implements GuildedSQL {
 
     @Override
     public List<String> get(String table, int limit) {
-        if(!meta.cacheContainsTable(table)) throw new NoSuchElementException("Table " + table + " does not exist");
-        GuildedTable tableObj = meta.getCachedTable(table);
+        if(!meta.cacheContainsTable(table))
+            throw new NoSuchElementException("Table " + table + " does not exist");
 
-        ArrayList<String> found = new ArrayList<>();
-        ArrayList<String> results = new ArrayList<>();
-        GuildedBuffer buf = new GuildedBuffer(limit, client, tableObj.getUUID());
-        while(found.size() < limit && buf.getEntries() != null && buf.getEntries().length > 0) {
+        final GuildedTable tableObj = meta.getCachedTable(table);
+        final ArrayList<String> found = new ArrayList<>();
+        final ArrayList<String> results = new ArrayList<>();
+
+        GuildedBuffer buf = new GuildedBuffer(limit, client, tableObj.getUUID(), null);
+        while(found.size() < limit && buf.notNullOrEmpty()) {
             for(GuildedDataEntry entry : buf.getEntries()) {
-                if(!entry.isUser()) continue;
-                if(found.contains(entry.getKey())) continue;
+                if(!entry.isUser() || found.contains(entry.getKey())) continue;
                 results.add(getContinuation(tableObj.getUUID(), entry));
                 found.add(entry.getKey());
             }
-            buf = new GuildedBuffer(100, client, tableObj.getUUID(), false, buf.getLastsDate());
+            buf = new GuildedBuffer(limit, client, tableObj.getUUID(), buf.getLastsDate());
         }
 
         return results;
@@ -182,14 +183,16 @@ public class GuildedSQLClient implements GuildedSQL {
 
     @Override
     public String get(String table, String key) {
-        if(!meta.cacheContainsTable(table)) throw new NoSuchElementException("Table " + table + " does not exist");
-        GuildedTable tableObj = meta.getCachedTable(table);
+        if(!meta.cacheContainsTable(table))
+            throw new NoSuchElementException("Table " + table + " does not exist");
+        checkMetaData(table);
 
-        GuildedDataEntry resultEntry = null;
+        final GuildedTable tableObj = meta.getCachedTable(table);
 
         boolean found = false;
-        GuildedBuffer buf = new GuildedBuffer(100, client, tableObj.getUUID());
-        while(!found && buf.getEntries() != null && buf.getEntries().length > 0) {
+        GuildedDataEntry resultEntry = null;
+        GuildedBuffer buf = new GuildedBuffer(MAX_LIMIT, client, tableObj.getUUID(), null);
+        while(!found && buf.notNullOrEmpty()) {
             for(GuildedDataEntry entry : buf.getEntries()) {
                 if(!entry.isUser()) continue;
                 if(entry.getKey().equals(key)) {
@@ -198,7 +201,7 @@ public class GuildedSQLClient implements GuildedSQL {
                     break;
                 }
             }
-            buf = new GuildedBuffer(100, client, tableObj.getUUID(), false, buf.getLastsDate());
+            buf = new GuildedBuffer(MAX_LIMIT, client, tableObj.getUUID(), buf.getLastsDate());
         }
 
         return getContinuation(tableObj.getUUID(), resultEntry);
@@ -206,26 +209,28 @@ public class GuildedSQLClient implements GuildedSQL {
 
     @Override
     public List<String> filter(String table, int limit, GuildedFilter filter) {
-        if(!meta.cacheContainsTable(table)) throw new NoSuchElementException("Table " + table + " does not exist");
-        GuildedTable tableObj = meta.getCachedTable(table);
+        if(!meta.cacheContainsTable(table))
+            throw new NoSuchElementException("Table " + table + " does not exist");
 
-        ArrayList<String> found = new ArrayList<>();
-        ArrayList<String> results = new ArrayList<>();
-        GuildedBuffer buf = new GuildedBuffer(limit, client, tableObj.getUUID());
-        // Note that the difference here is that we track results size, since we do not want to parse
-        // previous blocks of already found blocks since they're adjacent.
+        final GuildedTable tableObj = meta.getCachedTable(table);
+        final ArrayList<String> found = new ArrayList<>();
+        final ArrayList<String> results = new ArrayList<>();
+
+        GuildedBuffer buf = new GuildedBuffer(limit, client, tableObj.getUUID(), null);
+        // Note that the difference here from get is that we track results size, since we do not want to parse
+        // previous blocks of already discovered blocks.
         // Additionally, sending partially parsed from previous node strings to filter may produce errors,
         // depends on the client's implementation.
-        while(results.size() < limit && buf.getEntries() != null && buf.getEntries().length > 0) {
+        while(results.size() < limit && buf.notNullOrEmpty()) {
             for(GuildedDataEntry entry : buf.getEntries()) {
-                if(!entry.isUser()) continue;
-                if(found.contains(entry.getKey())) continue;
+                if(!entry.isUser() || found.contains(entry.getKey())) continue;
                 found.add(entry.getKey());
-                String current = getContinuation(tableObj.getUUID(), entry);
-                if(filter.filter(current)) // The biggest change
+
+                final String current = getContinuation(tableObj.getUUID(), entry);
+                if(filter.filter(current)) // The biggest change from get
                     results.add(current);
             }
-            buf = new GuildedBuffer(100, client, tableObj.getUUID(), false, buf.getLastsDate());
+            buf = new GuildedBuffer(limit, client, tableObj.getUUID(), buf.getLastsDate());
         }
 
         return results;
@@ -234,11 +239,12 @@ public class GuildedSQLClient implements GuildedSQL {
     @Override
     public void insert(String table, String key, String data) {
         if(contains(table, key)) throw new KeyAlreadyExistsException();
-        if(data == null) throw new NullPointerException();
+        else if(data == null) throw new NullPointerException();
+        checkMetaData(table);
 
-        GuildedTable tableObj = meta.getCachedTable(table);
+        final GuildedTable tableObj = meta.getCachedTable(table);
+        final ArrayList<GuildedDataEntry> entries = new ArrayList<>();
 
-        ArrayList<GuildedDataEntry> entries = new ArrayList<>();
         while(!data.isBlank()) {
             String content;
             if(data.length() + key.length() < MAX_CHUNK) {
@@ -257,7 +263,10 @@ public class GuildedSQLClient implements GuildedSQL {
     }
 
     private String saveDataEntry(String tableUUID, GuildedDataEntry entry, String prev) {
-        String[] prevArr = prev == null ? null : new String[]{prev};
+        final String[] prevArr = prev != null ?
+                new String[]{prev}:
+                null;
+
         Mono<CreateChatMessage> requestMono = Mono.just(
                 new CreateChatMessage(false, !entry.isUser(), prevArr, entry.getData()));
         Mono<MessageResponse> responseMono = client.post()
@@ -266,18 +275,24 @@ public class GuildedSQLClient implements GuildedSQL {
                 .retrieve()
                 .bodyToMono(MessageResponse.class);
         MessageResponse response = responseMono.block();
-        return response != null ? response.message().id() : null;
+
+        return response != null ?
+                response.message().id():
+                null;
     }
 
     @Override
     public void update(String table, String key, String data) {
+        // It's stupid, it's inefficient, but it's ok.
         delete(table, key);
         insert(table, key, data);
     }
 
     @Override
     public void updateKey(String table, String oldKey, String newKey) {
-        if(contains(table, newKey)) throw new KeyAlreadyExistsException("New key already exists in the table for another record.");
+        if(contains(table, newKey))
+            throw new KeyAlreadyExistsException("New key already exists in the table for another record.");
+
         String content = get(table, oldKey);
         delete(table, oldKey);
         insert(table, newKey, content);
@@ -290,13 +305,13 @@ public class GuildedSQLClient implements GuildedSQL {
 
             GuildedTable tableObj = meta.getCachedTable(table);
 
-            GuildedBuffer buf = new GuildedBuffer(100, client, tableObj.getUUID());
-            while (buf.getEntries() != null && buf.getEntries().length > 0) {
+            GuildedBuffer buf = new GuildedBuffer(100, client, tableObj.getUUID(), null);
+            while (buf.notNullOrEmpty()) {
                 for(GuildedDataEntry entry : buf.getEntries()) {
                     if(!entry.isUser()) continue;
                     if(entry.getUUID().equals(key)) return deleteContinuation(tableObj.getUUID(), entry);
                 }
-                buf = new GuildedBuffer(100, client, tableObj.getUUID(), false, buf.getLastsDate());
+                buf = new GuildedBuffer(100, client, tableObj.getUUID(), buf.getLastsDate());
             }
         } catch (Exception ignored) {}
         return false;
@@ -339,22 +354,15 @@ public class GuildedSQLClient implements GuildedSQL {
      * @return data entry.
      */
     private GuildedDataEntry getItem(String tableUUID, String msgUUID) {
+
         MessageResponse response = client.get()
                 .uri(CHANNEL + "/{channelId}/" + MESSAGE + "/{msgId}", tableUUID, msgUUID)
                 .retrieve()
                 .bodyToMono(MessageResponse.class)
                 .block();
         if(response == null) throw new RuntimeException("Ran into an issue while retrieving items");
-        int firstTilda = response.message().content().indexOf("~");
-        firstTilda = firstTilda == -1 ? 0 :  firstTilda;
-        String prev = response.message().replyMessageIds() != null && response.message().replyMessageIds().length > 0 ?
-                response.message().replyMessageIds()[0] : null;
-        return new GuildedDataEntry(response.message().id(),
-                response.message().content().substring(0, firstTilda),
-                response.message().content().substring(firstTilda + 1),
-                prev,
-                response.message().isSilent(),
-                response.message().createdAt());
+
+        return map(response.message());
     }
 
     private boolean deleteContinuation(String tableUUID, GuildedDataEntry entry) {
