@@ -2,16 +2,16 @@ package github.aaroniz.util;
 
 public class StringHelper {
     /**
-     * Checks if a given string is in the given range additionally performs the check:
-     * {@code 0 < min -> !s.isBlank()}
+     * Checks if a given string is in the given range.
+     *
      * @param s the string
      * @param min inclusive
      * @param max inclusive
      * @return s
-     * @throws IllegalArgumentException if {@code s > max || s < min || 0 < min -> s.isBlank()}.
+     * @throws IllegalArgumentException if {@code s > max || s < min}.
      */
     public static String checkLengthThrow(String s, int min, int max) {
-        if((!(0 < min) && !s.isBlank()) && (min <= s.length() && s.length() <= max)) {
+        if(min <= s.length() && s.length() <= max) {
             return s;
         }
         throw new IllegalArgumentException("String " + s + " length is not in the allowed range: " +
