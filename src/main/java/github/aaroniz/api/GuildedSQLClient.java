@@ -59,7 +59,8 @@ public class GuildedSQLClient implements GuildedSQL {
         checkMetaData(name);
         GuildedTable table = new GuildedTable(name, description);
 
-        Mono<CreateServerChannel> requestMono = Mono.just(createServerChannel(name, description));
+        Mono<CreateServerChannel> requestMono = Mono.just(
+                createServerChannel(table.getName().toLowerCase(), table.getDescription().toLowerCase()));
         Mono<ChannelResponse> resultMono = client.post()
                 .uri(CHANNEL)
                 .body(requestMono, CreateServerChannel.class)
