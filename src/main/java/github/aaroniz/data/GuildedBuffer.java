@@ -31,9 +31,10 @@ public class GuildedBuffer {
                         msgs[i].replyMessageIds()[0]:
                         null;
                 int firstTilda = msgs[i].content().indexOf("~");
+                firstTilda = firstTilda == -1 ? 0 : firstTilda;
                 entries[i] = new GuildedDataEntry(msgs[i].id(),
                         msgs[i].content().substring(0,firstTilda),
-                        msgs[i].content().substring(firstTilda),
+                        msgs[i].content().substring(firstTilda + 1),
                         prev, msgs[i].isPrivate(), msgs[i].createdAt());
             }
         } catch (WebClientResponseException e) {
@@ -58,9 +59,10 @@ public class GuildedBuffer {
                         msgs[i].replyMessageIds()[0]:
                         null;
                 int firstTilda = msgs[i].content().indexOf("~");
+                firstTilda = firstTilda == -1 ? 0 : firstTilda;
                 entries[i] = new GuildedDataEntry(msgs[i].id(),
                         msgs[i].content().substring(0,firstTilda),
-                        msgs[i].content().substring(firstTilda),
+                        msgs[i].content().substring(firstTilda + 1),
                         prev, msgs[i].isPrivate(), msgs[i].createdAt());
             }
         } catch (WebClientResponseException e) {
