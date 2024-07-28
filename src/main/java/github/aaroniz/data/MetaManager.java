@@ -67,7 +67,8 @@ public class MetaManager {
         } else if (cacheContainsTable(table.getName().toLowerCase())) {
             throw new KeyAlreadyExistsException("Table with name " + table.getName() + " already cached.");
         }
-        return cachedTables.put(table.getName().toLowerCase(), table);
+        cachedTables.put(table.getName().toLowerCase(), table);
+        return table;
     }
 
     public GuildedTable getCachedTable(String name) {
