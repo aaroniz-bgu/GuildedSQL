@@ -243,8 +243,8 @@ public class GuildedSQLClient implements GuildedSQL {
         checkMetaData(table);
 
         final GuildedTable tableObj = meta.getCachedTable(table);
-        final ArrayList<GuildedDataEntry> entries = new ArrayList<>();
 
+        String last = null;
         while(!data.isBlank()) {
             String content;
             if(data.length() + key.length() < MAX_CHUNK) {
@@ -252,13 +252,10 @@ public class GuildedSQLClient implements GuildedSQL {
                 data = "";
             } else {
                 content = key + "~" + data.substring(0, MAX_CHUNK - key.length() - 1);
+                data = data.substring(MAX_CHUNK);
             }
-            entries.add(new GuildedDataEntry(key, content, true, null));
-        }
-
-        String last = null;
-        for(GuildedDataEntry entry : entries) {
-            last = saveDataEntry(tableObj.getUUID(), entry, last);
+            // There was a bug where I infinitely increase the list, yet this is still a better approach, to flush away:
+            last = saveDataEntry(tableObj.getUUID(), new GuildedDataEntry(key, content, true, null), last);
         }
     }
 
