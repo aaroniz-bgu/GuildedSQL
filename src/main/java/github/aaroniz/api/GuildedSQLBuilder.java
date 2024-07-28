@@ -12,6 +12,7 @@ import github.aaroniz.util.JacksonConfig;
 import github.aaroniz.util.StringHelper;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.codec.json.Jackson2JsonEncoder;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
@@ -128,6 +129,8 @@ public class GuildedSQLBuilder {
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .codecs(configurer -> configurer.defaultCodecs().jackson2JsonEncoder(
+                        new Jackson2JsonEncoder(new JacksonConfig().objectMapper())))
                 .build();
     }
 
