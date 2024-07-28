@@ -305,13 +305,13 @@ public class GuildedSQLClient implements GuildedSQL {
 
             GuildedTable tableObj = meta.getCachedTable(table);
 
-            GuildedBuffer buf = new GuildedBuffer(100, client, tableObj.getUUID(), null);
+            GuildedBuffer buf = new GuildedBuffer(MAX_LIMIT, client, tableObj.getUUID(), null);
             while (buf.notNullOrEmpty()) {
                 for(GuildedDataEntry entry : buf.getEntries()) {
                     if(!entry.isUser()) continue;
                     if(entry.getUUID().equals(key)) return deleteContinuation(tableObj.getUUID(), entry);
                 }
-                buf = new GuildedBuffer(100, client, tableObj.getUUID(), buf.getLastsDate());
+                buf = new GuildedBuffer(MAX_LIMIT, client, tableObj.getUUID(), buf.getLastsDate());
             }
         } catch (Exception ignored) {}
         return false;
