@@ -309,7 +309,7 @@ public class GuildedSQLClient implements GuildedSQL {
             while (buf.notNullOrEmpty()) {
                 for(GuildedDataEntry entry : buf.getEntries()) {
                     if(!entry.isUser()) continue;
-                    if(entry.getUUID().equals(key)) return deleteContinuation(tableObj.getUUID(), entry);
+                    if(entry.getKey().equals(key)) return deleteContinuation(tableObj.getUUID(), entry);
                 }
                 buf = new GuildedBuffer(MAX_LIMIT, client, tableObj.getUUID(), buf.getLastsDate());
             }
