@@ -2,6 +2,7 @@ package github.aaroniz.api;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import github.aaroniz.data.GuildedTable;
@@ -22,9 +23,11 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.Map;
 
 import static github.aaroniz.api.Constants.META;
 import static github.aaroniz.api.Constants.PATH;
+import static java.util.Map.entry;
 
 public class GuildedSQLBuilder {
 
@@ -113,12 +116,12 @@ public class GuildedSQLBuilder {
         StringHelper.nullOrBlank(token);
         StringHelper.nullOrBlank(database);
 
-        WebClient client = createClient();
-        MetaManager metaManager = getMetaManager(client);
+        final WebClient client = createClient();
+        final MetaManager metaManager = getMetaManager(client);
+        final String visibility = isPrivate ? "public" : "private";
 
         metaManager.loadCacheFromMeta();
 
-        String visibility = isPrivate ? "public" : "private";
 
         return new GuildedSQLClient(client, metaManager, visibility, database);
     }
@@ -135,8 +138,9 @@ public class GuildedSQLBuilder {
     }
 
     private MetaManager getMetaManager(WebClient client) throws IOException {
-        ObjectMapper mapper = new JacksonConfig().objectMapper();
-        File file = new File("db_meta.json");
+        final ObjectMapper mapper = new JacksonConfig().objectMapper();
+        final File file = new File("db_meta.json");
+
         boolean fileCreated = file.createNewFile();
 
         if(meta == null) {
@@ -166,9 +170,12 @@ public class GuildedSQLBuilder {
             if (node instanceof ObjectNode objectNode) {
                 objectNode.put(param, value);
                 mapper.writeValue(file, objectNode);
+            } else if (node == null) {
+                node = mapper.createObjectNode();
+                ((ObjectNode) node).put(param, value);
+                mapper.writeValue(file, node);
             }
         } catch (IOException e) {
-            e.printStackTrace();
             throw new RuntimeException(e);
         }
     }
