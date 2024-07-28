@@ -258,7 +258,7 @@ public class GuildedSQLClient implements GuildedSQL {
                 new CreateChatMessage(!entry.isUser(), false, new String[]{prev}, entry.getData()));
         Mono<MessageResponse> responseMono = client.post()
                 .uri(CHANNEL + "/{channelId}/" + MESSAGE, tableUUID)
-                .bodyValue(CreateChatMessage.class)
+                .body(requestMono, CreateChatMessage.class)
                 .retrieve()
                 .bodyToMono(MessageResponse.class);
         MessageResponse response = responseMono.block();
