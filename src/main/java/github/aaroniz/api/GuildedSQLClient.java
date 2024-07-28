@@ -23,7 +23,11 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 
 import static github.aaroniz.api.Constants.*;
-
+/* If you're trying to understand this code, its possible,
+ * but you should know that I really didn't plan on it.
+ * So its on you! XD
+ * It's going to change soon anyway :P
+ */
 public class GuildedSQLClient implements GuildedSQL {
 
     private final String visibility; // server.visibility = "private" ? "public" : "private";
