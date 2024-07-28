@@ -18,21 +18,31 @@ public class GuildedDataEntry {
      */
     private String data;
     /**
-     * If the data is bigger than {@code MAX_CHUNK - key.length() - 1} than it'll be
+     * If the data is bigger than {@code MAX_CHUNK - key.length()} than it'll be
      * split into chunks. Each chunk is appended to the previous one.
      * The first one, if no chunking is necessary this is null.
      */
     private String previous;
+    /**
+     * Messages with {@code isPrivate = true} else, it was made by this system.
+     */
+    private boolean isUser;
+    /**
+     * The date which the message / entry was sent / saved.
+     */
+    private String date;
 
-    public GuildedDataEntry(String uuid, String key, String data, String previous) {
+    public GuildedDataEntry(String uuid, String key, String data, String previous, boolean isUser, String date) {
         this.uuid = uuid;
-        this.key = StringHelper.nullOrBlank(key);
+        this.key = key;
         this.data = StringHelper.nullOrBlank(data);
         this.previous = previous;
+        this.isUser = isUser;
+        this.date = date;
     }
 
-    public GuildedDataEntry(String key, String data) {
-        this(null, key, data, null);
+    public GuildedDataEntry(String key, String data, boolean isUser, String date) {
+        this(null, key, data, null, isUser, date);
     }
 
     public String getUUID() {
@@ -48,7 +58,7 @@ public class GuildedDataEntry {
     }
 
     public void setKey(String key) {
-        this.key = StringHelper.nullOrBlank(key);
+        this.key = key;
     }
 
     public String getData() {
@@ -65,5 +75,21 @@ public class GuildedDataEntry {
 
     public void setPrevious(String previous) {
         this.previous = previous;
+    }
+
+    public boolean isUser() {
+        return isUser;
+    }
+
+    public void setUser(boolean user) {
+        isUser = user;
+    }
+
+    public String getDate() {
+        return date;
+    }
+
+    public void setDate(String date) {
+        this.date = date;
     }
 }
