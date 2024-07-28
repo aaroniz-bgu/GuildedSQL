@@ -161,7 +161,7 @@ public class GuildedSQLClient implements GuildedSQL {
         ArrayList<String> found = new ArrayList<>();
         ArrayList<String> results = new ArrayList<>();
         GuildedBuffer buf = new GuildedBuffer(limit, client, tableObj.getUUID(), false);
-        while(found.size() < limit && buf.getEntries().length > 0) {
+        while(found.size() < limit && buf.getEntries() != null && buf.getEntries().length > 0) {
             for(GuildedDataEntry entry : buf.getEntries()) {
                 if(found.contains(entry.getKey())) continue;
                 results.add(getContinuation(tableObj.getUUID(), entry));
@@ -187,7 +187,7 @@ public class GuildedSQLClient implements GuildedSQL {
 
         boolean found = false;
         GuildedBuffer buf = new GuildedBuffer(100, client, tableObj.getUUID(), false);
-        while(!found && buf.getEntries().length > 0) {
+        while(!found && buf.getEntries() != null && buf.getEntries().length > 0) {
             for(GuildedDataEntry entry : buf.getEntries()) {
                 if(entry.getKey().equals(key)) {
                     found = true;
@@ -213,7 +213,7 @@ public class GuildedSQLClient implements GuildedSQL {
         // previous blocks of already found blocks since they're adjacent.
         // Additionally, sending partially parsed from previous node strings to filter may produce errors,
         // depends on the client's implementation.
-        while(results.size() < limit && buf.getEntries().length > 0) {
+        while(results.size() < limit && buf.getEntries() != null && buf.getEntries().length > 0) {
             for(GuildedDataEntry entry : buf.getEntries()) {
                 if(found.contains(entry.getKey())) continue;
                 found.add(entry.getKey());
@@ -286,7 +286,7 @@ public class GuildedSQLClient implements GuildedSQL {
             GuildedTable tableObj = meta.getCachedTable(table);
 
             GuildedBuffer buf = new GuildedBuffer(100, client, tableObj.getUUID(), false);
-            while (buf.getEntries().length > 0) {
+            while (buf.getEntries() != null && buf.getEntries().length > 0) {
                 for(GuildedDataEntry entry : buf.getEntries()) {
                     if(entry.getUUID().equals(key)) return deleteContinuation(tableObj.getUUID(), entry);
                 }
