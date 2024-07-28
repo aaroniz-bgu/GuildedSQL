@@ -17,7 +17,7 @@ public class GuildedBuffer {
     public GuildedBuffer(int size, WebClient client, String uuid, boolean getPrivate) {
         entries = null;
         Mono<MessagesResponse> requestMono = client.get()
-                .uri("channels/{id}?limit={limit},includePrivate={private}", size, getPrivate)
+                .uri("channels/{id}?limit={limit},includePrivate={private}", uuid, size, getPrivate)
                 .retrieve()
                 .bodyToMono(MessagesResponse.class);
 
@@ -25,6 +25,7 @@ public class GuildedBuffer {
             MessagesResponse response = requestMono.block();
             if(response == null) throw new RuntimeException("Ran into issue while fetching data");
             ChatMessage[] msgs = response.messages();
+            if(msgs == null) return;
             entries = new GuildedDataEntry[Math.min(size, msgs.length)];
             for(int i = 0; i < entries.length; i++) {
                 String prev = msgs[i].replyMessageIds() != null && msgs[i].replyMessageIds().length > 0 ?
