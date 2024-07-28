@@ -88,7 +88,7 @@ public class MetaManager {
 
         if(response == null) throw new RuntimeException("Could not save table identifier to meta-table");
 
-        if(response.message().content().length() + uuid.length() <= MAX_CHUNK) {
+        if(response.message() != null && response.message().content().length() + uuid.length() <= MAX_CHUNK) {
             String newContent = response.message().content().concat(",").concat(uuid);
             client.patch()
                     .uri(CHANNEL + "/{channelId}/" + MESSAGE, meta.getUUID())
@@ -100,7 +100,7 @@ public class MetaManager {
             CreateChatMessage request = new CreateChatMessage(true, false, null, uuid);
             client.post()
                     .uri(CHANNEL + "/{channelId}/" + MESSAGE, meta.getUUID())
-                    .bodyValue(Mono.just(request))
+                    .body(request, CreateChatMessage.class)
                     .retrieve()
                     .bodyToMono(MessageResponse.class)
                     .block();
