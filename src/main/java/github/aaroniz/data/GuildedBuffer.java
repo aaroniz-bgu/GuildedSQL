@@ -14,10 +14,10 @@ import java.util.Arrays;
 public class GuildedBuffer {
     private GuildedDataEntry[] entries;
 
-    public GuildedBuffer(int size, WebClient client, String uuid, boolean getPrivate) {
+    public GuildedBuffer(int size, WebClient client, String uuid) {
         entries = null;
         Mono<MessagesResponse> requestMono = client.get()
-                .uri("channels/{id}?limit={limit},includePrivate={private}", uuid, size, getPrivate)
+                .uri("channels/{id}?limit={limit}", uuid, size)
                 .retrieve()
                 .bodyToMono(MessagesResponse.class);
 
