@@ -1,2 +1,2 @@
-rootProject.name = "guilded-nosql"
+rootProject.name = "guilded-sql"
 
