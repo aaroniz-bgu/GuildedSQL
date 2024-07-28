@@ -182,27 +182,24 @@ public class GuildedSQLBuilder {
 
     // better not.
     private String createMeta(WebClient client, ObjectMapper mapper, File file) {
-        String visibility = isPrivate ? "public" : "private";
-        var request = new CreateServerChannel(META, "chat",
+        final String visibility = isPrivate ? "public" : "private";
+
+        final CreateServerChannel request = new CreateServerChannel(META, "chat",
                 "Contains meta data about the database for the usage of the reading head.",
                 visibility, database);
-        Mono<CreateServerChannel> channelMono = Mono.just(request);
-        Mono<ChannelResponse> resultMono = client.post()
+        final Mono<CreateServerChannel> channelMono = Mono.just(request);
+        final Mono<ChannelResponse> resultMono = client.post()
                 .uri("channels")
                 .body(channelMono, CreateServerChannel.class)
                 .retrieve()
                 .bodyToMono(ChannelResponse.class);
-        try {
-            ChannelResponse result = resultMono.block();
-            if(result != null) {
-                String meta = result.channel().id();
-                saveMeta("meta", meta, mapper, file);
-                return meta;
-            } else throw new NullPointerException("Something went wrong while creating meta table");
-        } catch (WebClientResponseException e) {
-            throw e;
-        }
+        final ChannelResponse result = resultMono.block();
+        if(result != null) {
+            String meta = result.channel().id();
+            saveMeta("meta", meta, mapper, file);
+            return meta;
+        } else throw new NullPointerException("Something went wrong while creating meta table");
     }
 
-    record DbMeta(@JsonProperty("meta") String meta, @JsonProperty("server") String server) {};
+    private record DbMeta(@JsonProperty("meta") String meta, @JsonProperty("server") String server) {};
 }
