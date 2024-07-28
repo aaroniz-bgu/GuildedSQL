@@ -115,6 +115,8 @@ public class GuildedSQLBuilder {
         WebClient client = createClient();
         MetaManager metaManager = getMetaManager(client);
 
+        metaManager.loadCacheFromMeta();
+
         String visibility = isPrivate ? "public" : "private";
 
         return new GuildedSQLClient(client, metaManager, visibility, database);
