@@ -85,4 +85,8 @@ public class GuildedBuffer {
     public String getLastsDate() {
         return entries == null ? null : entries[entries.length - 1].getDate();
     }
+
+    public boolean notNullOrEmpty() {
+        return entries != null && entries.length > 0;
+    }
 }
