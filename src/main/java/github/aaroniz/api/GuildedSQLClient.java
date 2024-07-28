@@ -185,4 +185,35 @@ public class GuildedSQLClient implements GuildedSQL {
     public boolean delete(String table, String key) {
         return false;
     }
+
+    private String getContinuation(String tableUUID, GuildedDataEntry entry) {
+        String result = entry == null ? null :
+                entry.getData().substring(entry.getData().indexOf("~"));
+
+        while(entry != null && entry.getPrevious() != null) {
+            entry = getItem(tableUUID, entry.getPrevious());
+            result = entry.getData().substring(entry.getData().indexOf("~")).concat(result);
+        }
+
+        return result;
+    }
+
+    private GuildedDataEntry getItem(String tableUUID, String msgUUID) {
+        MessageResponse response = client.get()
+                .uri(CHANNEL + "/{channelId}/" + MESSAGE + "/{msgId}", tableUUID, msgUUID)
+                .retrieve()
+                .bodyToMono(MessageResponse.class)
+                .block();
+        if(response == null) throw new RuntimeException("Ran into an issue while retrieving items");
+        int firstTilda = response.message().content().indexOf("~");
+        firstTilda = firstTilda == -1 ? 0 :  firstTilda;
+        String prev = response.message().replyMessageIds() != null && response.message().replyMessageIds().length > 0 ?
+                response.message().replyMessageIds()[0] : null;
+        return new GuildedDataEntry(response.message().id(),
+                response.message().content().substring(0, firstTilda),
+                response.message().content().substring(firstTilda + 1),
+                prev,
+                response.message().isPrivate(),
+                response.message().createdAt());
+    }
 }
