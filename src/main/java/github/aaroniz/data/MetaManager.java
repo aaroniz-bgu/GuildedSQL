@@ -93,7 +93,7 @@ public class MetaManager {
 
         if(last != null && last.content().length() + uuid.length() <= MAX_CHUNK) {
             String newContent = last.content().concat(",").concat(uuid);
-            client.patch()
+            client.put()
                     .uri(CHANNEL + "/{channelId}/" + MESSAGE + "/{msgId}", meta.getUUID(), last.id())
                     .body(Mono.just(new UpdateChatMessage(newContent)), UpdateChatMessage.class)
                     .retrieve()
