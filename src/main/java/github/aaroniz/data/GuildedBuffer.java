@@ -30,7 +30,11 @@ public class GuildedBuffer {
                 String prev = msgs[i].replyMessageIds() != null && msgs[i].replyMessageIds().length > 0 ?
                         msgs[i].replyMessageIds()[0]:
                         null;
-                entries[i] = new GuildedDataEntry(msgs[i].id(), null, msgs[i].content(), prev, msgs[i].isPrivate(), msgs[i].createdAt());
+                int firstTilda = msgs[i].content().indexOf("~");
+                entries[i] = new GuildedDataEntry(msgs[i].id(),
+                        msgs[i].content().substring(0,firstTilda),
+                        msgs[i].content().substring(firstTilda),
+                        prev, msgs[i].isPrivate(), msgs[i].createdAt());
             }
         } catch (WebClientResponseException e) {
             throw e;
@@ -53,7 +57,11 @@ public class GuildedBuffer {
                 String prev = msgs[i].replyMessageIds() != null && msgs[i].replyMessageIds().length > 0 ?
                         msgs[i].replyMessageIds()[0]:
                         null;
-                entries[i] = new GuildedDataEntry(msgs[i].id(), null, msgs[i].content(), prev, msgs[i].isPrivate(), msgs[i].createdAt());
+                int firstTilda = msgs[i].content().indexOf("~");
+                entries[i] = new GuildedDataEntry(msgs[i].id(),
+                        msgs[i].content().substring(0,firstTilda),
+                        msgs[i].content().substring(firstTilda),
+                        prev, msgs[i].isPrivate(), msgs[i].createdAt());
             }
         } catch (WebClientResponseException e) {
             throw e;
