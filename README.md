@@ -29,8 +29,12 @@ public static void main(String[] args) throws IOException {
     dbApi.insert("Animals", "Garfield", kitty);
 }
 ```
-
 **Documentation** Most of the project uses Javadoc, especially in areas where I haven't yet organized the code. The most important documentation is for the `GuildedSQL` interface. Aside from this, you really shouldn't access the other objects. For this reason, I have created the bundled `DOC.md`.
+
+Currently, `Main.java` contains a command line interface to play around with some of the features. So, if you'd like to play around and help me test it, feel free.
+
+## Build
+`TODO`
 
 ## Local Generated Files
 Since Guilded REST API (atm) does not provide a method to retrieve `ServerChannel`s and `Group`s as a collection GuildedSQL keeps their identifiers in a designated channel `%metadata_guildedsql%` which means you may not have a channel with this name, but more importantly the id of this channel is saved locally. You may find it at:
