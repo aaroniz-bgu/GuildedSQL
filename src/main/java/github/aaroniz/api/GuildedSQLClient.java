@@ -164,6 +164,7 @@ public class GuildedSQLClient implements GuildedSQL {
         GuildedBuffer buf = new GuildedBuffer(limit, client, tableObj.getUUID(), false);
         while(found.size() < limit && buf.getEntries() != null && buf.getEntries().length > 0) {
             for(GuildedDataEntry entry : buf.getEntries()) {
+                if(!entry.isUser()) continue;
                 if(found.contains(entry.getKey())) continue;
                 results.add(getContinuation(tableObj.getUUID(), entry));
                 found.add(entry.getKey());
@@ -190,6 +191,7 @@ public class GuildedSQLClient implements GuildedSQL {
         GuildedBuffer buf = new GuildedBuffer(100, client, tableObj.getUUID(), false);
         while(!found && buf.getEntries() != null && buf.getEntries().length > 0) {
             for(GuildedDataEntry entry : buf.getEntries()) {
+                if(!entry.isUser()) continue;
                 if(entry.getKey().equals(key)) {
                     found = true;
                     resultEntry = entry;
@@ -216,6 +218,7 @@ public class GuildedSQLClient implements GuildedSQL {
         // depends on the client's implementation.
         while(results.size() < limit && buf.getEntries() != null && buf.getEntries().length > 0) {
             for(GuildedDataEntry entry : buf.getEntries()) {
+                if(!entry.isUser()) continue;
                 if(found.contains(entry.getKey())) continue;
                 found.add(entry.getKey());
                 String current = getContinuation(tableObj.getUUID(), entry);
@@ -254,8 +257,9 @@ public class GuildedSQLClient implements GuildedSQL {
     }
 
     private String saveDataEntry(String tableUUID, GuildedDataEntry entry, String prev) {
+        String[] prevArr = prev == null ? null : new String[]{prev};
         Mono<CreateChatMessage> requestMono = Mono.just(
-                new CreateChatMessage(!entry.isUser(), false, new String[]{prev}, entry.getData()));
+                new CreateChatMessage(false, !entry.isUser(), prevArr, entry.getData()));
         Mono<MessageResponse> responseMono = client.post()
                 .uri(CHANNEL + "/{channelId}/" + MESSAGE, tableUUID)
                 .body(requestMono, CreateChatMessage.class)
@@ -289,6 +293,7 @@ public class GuildedSQLClient implements GuildedSQL {
             GuildedBuffer buf = new GuildedBuffer(100, client, tableObj.getUUID(), false);
             while (buf.getEntries() != null && buf.getEntries().length > 0) {
                 for(GuildedDataEntry entry : buf.getEntries()) {
+                    if(!entry.isUser()) continue;
                     if(entry.getUUID().equals(key)) return deleteContinuation(tableObj.getUUID(), entry);
                 }
                 buf = new GuildedBuffer(100, client, tableObj.getUUID(), false, buf.getLastsDate());
@@ -348,7 +353,7 @@ public class GuildedSQLClient implements GuildedSQL {
                 response.message().content().substring(0, firstTilda),
                 response.message().content().substring(firstTilda + 1),
                 prev,
-                response.message().isPrivate(),
+                response.message().isSilent(),
                 response.message().createdAt());
     }
 
