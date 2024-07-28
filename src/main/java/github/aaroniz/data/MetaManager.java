@@ -97,7 +97,7 @@ public class MetaManager {
                     .bodyToMono(ChannelResponse.class)
                     .block();
         } else {
-            CreateChatMessage request = new CreateChatMessage(true, false, null, uuid);
+            CreateChatMessage request = new CreateChatMessage(false, true, null, uuid);
             client.post()
                     .uri(CHANNEL + "/{channelId}/" + MESSAGE, meta.getUUID())
                     .body(Mono.just(request), CreateChatMessage.class)
