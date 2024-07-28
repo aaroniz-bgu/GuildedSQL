@@ -3,7 +3,6 @@ package github.aaroniz.data;
 import github.aaroniz.guilded.models.ChatMessage;
 import github.aaroniz.guilded.responses.MessagesResponse;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
@@ -11,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import static github.aaroniz.api.Constants.*;
+import static github.aaroniz.data.Mapper.map;
 
 /**
  * Not a real buffer.
@@ -39,19 +39,8 @@ public class GuildedBuffer {
         final ArrayList<GuildedDataEntry> entryList = new ArrayList<>();
 
         for(ChatMessage msg : msgs) {
-            if(!msg.type().equals("default")) continue;
-
-            final String prev = msg.replyMessageIds() != null && msg.replyMessageIds().length > 0 ?
-                    msg.replyMessageIds()[0]:
-                    null;
-            int firstTilda = msg.content().indexOf("~");
-            firstTilda = firstTilda == -1 ? 0 : firstTilda;
-
-            final String key = meta ? META : msg.content().substring(0, firstTilda);
-            final String ctx = meta ? msg.content() : msg.content().substring(firstTilda + 1);
-
-            entryList.add(new GuildedDataEntry(
-                    msg.id(), key, ctx, prev, !msg.isSilent(), msg.createdAt()));
+            if(!(msg.type().equals("default") || msg.type().equals("chat"))) continue;
+            entryList.add(map(msg, meta));
         }
 
         entries = entryList.toArray(entries);
