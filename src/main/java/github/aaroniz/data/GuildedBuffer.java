@@ -4,9 +4,14 @@ import github.aaroniz.guilded.models.ChatMessage;
 import github.aaroniz.guilded.responses.MessagesResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+
+import static github.aaroniz.api.Constants.CHANNEL;
+import static github.aaroniz.api.Constants.MESSAGE;
 
 /**
  * Not a real buffer.
@@ -14,61 +19,51 @@ import java.util.Arrays;
 public class GuildedBuffer {
     private GuildedDataEntry[] entries;
 
-    public GuildedBuffer(int size, WebClient client, String uuid) {
-        entries = null;
+    public GuildedBuffer(int size, WebClient client, String uuid, String before) {
+        entries = new GuildedDataEntry[0];
+
+        String uri = getUri(size, uuid, before);
         Mono<MessagesResponse> requestMono = client.get()
-                .uri("channels/{id}?limit={limit}", uuid, size)
+                .uri(uri)
                 .retrieve()
                 .bodyToMono(MessagesResponse.class);
+        MessagesResponse response = requestMono.block();
 
-        try {
-            MessagesResponse response = requestMono.block();
-            if(response == null) throw new RuntimeException("Ran into issue while fetching data");
-            ChatMessage[] msgs = response.messages();
-            if(msgs == null) return;
-            entries = new GuildedDataEntry[Math.min(size, msgs.length)];
-            for(int i = 0; i < entries.length; i++) {
-                String prev = msgs[i].replyMessageIds() != null && msgs[i].replyMessageIds().length > 0 ?
-                        msgs[i].replyMessageIds()[0]:
-                        null;
-                int firstTilda = msgs[i].content().indexOf("~");
-                firstTilda = firstTilda == -1 ? 0 : firstTilda;
-                entries[i] = new GuildedDataEntry(msgs[i].id(),
-                        msgs[i].content().substring(0,firstTilda),
-                        msgs[i].content().substring(firstTilda + 1),
-                        prev, !msgs[i].isPrivate(), msgs[i].createdAt());
-            }
-        } catch (WebClientResponseException e) {
-            throw e;
+        if(response == null)
+            throw new RuntimeException("Ran into issue while fetching data");
+
+        final ChatMessage[] msgs = response.messages();
+        final ArrayList<GuildedDataEntry> entryList = new ArrayList<>();
+
+        for(ChatMessage msg : msgs) {
+            if(!msg.type().equals("chat")) continue;
+
+            final String prev = msg.replyMessageIds() != null && msg.replyMessageIds().length > 0 ?
+                    msg.replyMessageIds()[0]:
+                    null;
+            int firstTilda = msg.content().indexOf("~");
+            firstTilda = firstTilda == -1 ? 0 : firstTilda;
+
+            entryList.add(new GuildedDataEntry(
+                    msg.id(),
+                    msg.content().substring(0, firstTilda),
+                    msg.content().substring(firstTilda),
+                    prev, !msg.isSilent(), msg.createdAt()));
         }
+
+        entries = entryList.toArray(entries);
     }
 
-    public GuildedBuffer(int size, WebClient client, String uuid, boolean getPrivate, String before) {
-        entries = null;
-        Mono<MessagesResponse> requestMono = client.get()
-                .uri("channels/{id}?limit={limit},includePrivate={private},before={before}", size, getPrivate, before)
-                .retrieve()
-                .bodyToMono(MessagesResponse.class);
+    private static String getUri(int size, String uuid, String before) {
+        UriComponentsBuilder builder = UriComponentsBuilder
+                .fromUriString(CHANNEL + "/{id}/" + MESSAGE)
+                .queryParam("limit", size);
 
-        try {
-            MessagesResponse response = requestMono.block();
-            if(response == null) throw new RuntimeException("Ran into issue while fetching data");
-            ChatMessage[] msgs = response.messages();
-            entries = new GuildedDataEntry[Math.min(size, msgs.length)];
-            for(int i = 0; i < entries.length; i++) {
-                String prev = msgs[i].replyMessageIds() != null && msgs[i].replyMessageIds().length > 0 ?
-                        msgs[i].replyMessageIds()[0]:
-                        null;
-                int firstTilda = msgs[i].content().indexOf("~");
-                firstTilda = firstTilda == -1 ? 0 : firstTilda;
-                entries[i] = new GuildedDataEntry(msgs[i].id(),
-                        msgs[i].content().substring(0,firstTilda),
-                        msgs[i].content().substring(firstTilda + 1),
-                        prev, !msgs[i].isPrivate(), msgs[i].createdAt());
-            }
-        } catch (WebClientResponseException e) {
-            throw e;
-        }
+        if(before != null) builder.queryParam("before", before);
+
+        return builder.build()
+                .expand(uuid)
+                .toUriString();
     }
 
     public GuildedDataEntry[] getEntries() {
