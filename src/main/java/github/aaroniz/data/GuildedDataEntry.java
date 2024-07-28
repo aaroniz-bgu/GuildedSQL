@@ -1,7 +1,5 @@
 package github.aaroniz.data;
 
-import github.aaroniz.util.StringHelper;
-
 import static github.aaroniz.util.StringHelper.nullOrBlank;
 
 public class GuildedDataEntry {
