@@ -161,7 +161,7 @@ public class GuildedSQLClient implements GuildedSQL {
 
         ArrayList<String> found = new ArrayList<>();
         ArrayList<String> results = new ArrayList<>();
-        GuildedBuffer buf = new GuildedBuffer(limit, client, tableObj.getUUID(), false);
+        GuildedBuffer buf = new GuildedBuffer(limit, client, tableObj.getUUID());
         while(found.size() < limit && buf.getEntries() != null && buf.getEntries().length > 0) {
             for(GuildedDataEntry entry : buf.getEntries()) {
                 if(!entry.isUser()) continue;
@@ -188,7 +188,7 @@ public class GuildedSQLClient implements GuildedSQL {
         GuildedDataEntry resultEntry = null;
 
         boolean found = false;
-        GuildedBuffer buf = new GuildedBuffer(100, client, tableObj.getUUID(), false);
+        GuildedBuffer buf = new GuildedBuffer(100, client, tableObj.getUUID());
         while(!found && buf.getEntries() != null && buf.getEntries().length > 0) {
             for(GuildedDataEntry entry : buf.getEntries()) {
                 if(!entry.isUser()) continue;
@@ -211,7 +211,7 @@ public class GuildedSQLClient implements GuildedSQL {
 
         ArrayList<String> found = new ArrayList<>();
         ArrayList<String> results = new ArrayList<>();
-        GuildedBuffer buf = new GuildedBuffer(limit, client, tableObj.getUUID(), false);
+        GuildedBuffer buf = new GuildedBuffer(limit, client, tableObj.getUUID());
         // Note that the difference here is that we track results size, since we do not want to parse
         // previous blocks of already found blocks since they're adjacent.
         // Additionally, sending partially parsed from previous node strings to filter may produce errors,
@@ -290,7 +290,7 @@ public class GuildedSQLClient implements GuildedSQL {
 
             GuildedTable tableObj = meta.getCachedTable(table);
 
-            GuildedBuffer buf = new GuildedBuffer(100, client, tableObj.getUUID(), false);
+            GuildedBuffer buf = new GuildedBuffer(100, client, tableObj.getUUID());
             while (buf.getEntries() != null && buf.getEntries().length > 0) {
                 for(GuildedDataEntry entry : buf.getEntries()) {
                     if(!entry.isUser()) continue;
