@@ -124,9 +124,21 @@ public class GuildedSQLClient implements GuildedSQL {
         StringHelper.nullOrBlank(tableName);
         checkMetaData(tableName);
 
+        if(!meta.cacheContainsTable(tableName)) return false;
 
+        GuildedTable table = meta.getCachedTable(tableName);
 
-        return false;
+        Mono<Void> responseMono =  client.delete()
+                .uri(CHANNEL + "/{id}", table.getUUID())
+                .retrieve()
+                .bodyToMono(Void.class);
+        try {
+            responseMono.block();
+            meta.deleteAndMetaRemove(tableName);
+            return true;
+        } catch (WebClientResponseException e) {
+            return false;
+        }
     }
 
     @Override
