@@ -2,6 +2,8 @@ package github.aaroniz.data;
 
 import github.aaroniz.util.StringHelper;
 
+import static github.aaroniz.util.StringHelper.nullOrBlank;
+
 public class GuildedDataEntry {
 
 
@@ -11,6 +13,7 @@ public class GuildedDataEntry {
     private String uuid;
     /**
      * The key of this entry.
+     * May not contain '~'
      */
     private String key;
     /**
@@ -18,7 +21,7 @@ public class GuildedDataEntry {
      */
     private String data;
     /**
-     * If the data is bigger than {@code MAX_CHUNK - key.length()} than it'll be
+     * If the data is bigger than {@code MAX_CHUNK - key.length() - 1} than it'll be
      * split into chunks. Each chunk is appended to the previous one.
      * The first one, if no chunking is necessary this is null.
      */
@@ -34,11 +37,14 @@ public class GuildedDataEntry {
 
     public GuildedDataEntry(String uuid, String key, String data, String previous, boolean isUser, String date) {
         this.uuid = uuid;
-        this.key = key;
-        this.data = StringHelper.nullOrBlank(data);
+        this.key = nullOrBlank(key);
+        this.data = nullOrBlank(data);
         this.previous = previous;
         this.isUser = isUser;
         this.date = date;
+        if(key.contains("~")) {
+            throw new IllegalArgumentException("Using `~` in keys is forbidden");
+        }
     }
 
     public GuildedDataEntry(String key, String data, boolean isUser, String date) {
@@ -58,7 +64,7 @@ public class GuildedDataEntry {
     }
 
     public void setKey(String key) {
-        this.key = key;
+        this.key = nullOrBlank(key);
     }
 
     public String getData() {
@@ -66,7 +72,7 @@ public class GuildedDataEntry {
     }
 
     public void setData(String data) {
-        this.data = StringHelper.nullOrBlank(data);
+        this.data = nullOrBlank(data);
     }
 
     public String getPrevious() {
