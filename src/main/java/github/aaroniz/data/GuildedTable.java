@@ -31,7 +31,7 @@ public class GuildedTable {
     public GuildedTable(String uuid, String name, String description) {
         this.uuid = uuid;
         this.name = StringHelper.checkLengthThrow(name, MIN_STR, MAX_NAME);
-        this.description = description == null ? null : StringHelper.checkLengthThrow(description, MIN_STR, MAX_DESC);
+        this.description = description == null ? "no-description" : StringHelper.checkLengthThrow(description, MIN_STR, MAX_DESC);
     }
 
     public GuildedTable(String name, String description) {
