@@ -86,16 +86,16 @@ public interface GuildedSQL {
      * @return list of the last {@code limit} entries from {@code table}.
      * @throws {@link NoSuchElementException} If the table doesn't exist.
      */
-    String get(String table, int limit);
+    List<String> get(String table, int limit);
 
     /**
      * Retrieve a list of the last {@code < 50} entries.
      *
      * @param table the table from which to query entries.
-     * @return list of the last {@code limit} entries from {@code table}.
+     * @return list of the last {@code < 50} entries from {@code table}.
      * @throws {@link NoSuchElementException} If the table doesn't exist.
      */
-    String get(String table);
+    List<String> get(String table);
 
     /**
      * Retrieve a single record with the given key from the given table.
