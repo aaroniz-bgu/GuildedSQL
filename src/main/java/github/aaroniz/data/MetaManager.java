@@ -26,7 +26,7 @@ public class MetaManager {
 
     public void loadCacheFromMeta() {
         GuildedBuffer buf = new GuildedBuffer(100, client, meta.getUUID(), true);
-        while(buf.getEntries().length > 0) {
+        while(buf.getEntries() != null && buf.getEntries().length > 0) {
             for(GuildedDataEntry entry : buf.getEntries()) {
                 String[] tables = entry.getData().split(",");
                 for(String uuid : tables) {
