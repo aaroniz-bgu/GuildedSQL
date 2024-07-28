@@ -19,15 +19,11 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import reactor.core.publisher.Mono;
 
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.HashMap;
-import java.util.Map;
 
 import static github.aaroniz.api.Constants.META;
 import static github.aaroniz.api.Constants.PATH;
-import static java.util.Map.entry;
 
 public class GuildedSQLBuilder {
 
@@ -166,14 +162,14 @@ public class GuildedSQLBuilder {
 
     private void saveMeta(String param, String value, ObjectMapper mapper, File file) {
         try {
-            JsonNode node = mapper.readTree(file);
+            JsonNode node = mapper.readTree(file.getAbsoluteFile());
             if (node instanceof ObjectNode objectNode) {
                 objectNode.put(param, value);
-                mapper.writeValue(file, objectNode);
-            } else if (node == null) {
-                node = mapper.createObjectNode();
-                ((ObjectNode) node).put(param, value);
-                mapper.writeValue(file, node);
+                mapper.writeValue(file.getAbsoluteFile(), objectNode);
+            } else {
+                ObjectNode objNode = mapper.createObjectNode();
+                objNode.put(param, value);
+                mapper.writeValue(file.getAbsoluteFile(), objNode);
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
