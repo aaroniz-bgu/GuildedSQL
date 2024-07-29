@@ -1,5 +1,7 @@
-package github.aaroniz.data;
+package github.aaroniz.guilded;
 
+import github.aaroniz.data.GuildedDataEntry;
+import github.aaroniz.data.GuildedTable;
 import github.aaroniz.guilded.models.ChatMessage;
 import github.aaroniz.guilded.models.ServerChannel;
 import github.aaroniz.guilded.requests.CreateChatMessage;

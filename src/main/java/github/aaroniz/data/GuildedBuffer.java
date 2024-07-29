@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import static github.aaroniz.api.Constants.*;
-import static github.aaroniz.data.Mapper.map;
+import static github.aaroniz.guilded.Mapper.map;
 
 /**
  * Not a real buffer.

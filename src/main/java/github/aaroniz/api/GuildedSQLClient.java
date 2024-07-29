@@ -4,9 +4,7 @@ import github.aaroniz.data.GuildedBuffer;
 import github.aaroniz.data.GuildedDataEntry;
 import github.aaroniz.data.GuildedTable;
 import github.aaroniz.data.MetaManager;
-import github.aaroniz.guilded.models.ChatMessage;
 import github.aaroniz.guilded.requests.CreateChatMessage;
-import github.aaroniz.guilded.requests.UpdateChatMessage;
 import github.aaroniz.guilded.responses.ChannelResponse;
 import github.aaroniz.guilded.requests.CreateServerChannel;
 import github.aaroniz.guilded.requests.UpdateServerChannel;
@@ -19,11 +17,10 @@ import reactor.core.publisher.Mono;
 import javax.management.openmbean.KeyAlreadyExistsException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
 
 import static github.aaroniz.api.Constants.*;
-import static github.aaroniz.data.Mapper.map;
+import static github.aaroniz.guilded.Mapper.map;
 import static github.aaroniz.util.StringHelper.getFirstTilda;
 
 /* If you're trying to understand this code, its possible,
